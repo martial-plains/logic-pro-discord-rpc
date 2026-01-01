@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo install cargo-bundle
+
+      - name: Build
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Bundle
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        run: cargo bundle --release
+
+      - name: Package
+        run: |
+          cd target/release/bundle/osx
+          zip -r MyApp-macOS-arm64.zip MyApp.app
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: target/release/bundle/osx/LogicPro-RPC-arm64.zip
